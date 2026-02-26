@@ -3,6 +3,11 @@ import bcrypt from "bcrypt";
 import mongoose, { Schema } from "mongoose";
 import jwt from 'jsonwebtoken'
 const userSchema = new Schema({
+
+    isActive: {
+        type: Boolean,
+        default: true
+    },
     username: {
         type: String,
         required: true,
@@ -38,11 +43,7 @@ const userSchema = new Schema({
     watchHistory: [{
         type: Schema.Types.ObjectId,
         ref: 'Video'
-    }],
-    refreshToken: {
-        type: String
-    }
-
+    }]
 }, {
     timestamps: true
 })

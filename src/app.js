@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors"
 import cookieParser from "cookie-parser";
+import routes from "./routes/index.js";
 
 export const app = express();
 app.use(cors({
@@ -12,5 +13,7 @@ app.use(express.json({
 app.use(express.urlencoded(
 { extended:true,limit:"16kb"
 }))
+
+app.use('/api',routes);
 app.use(express.static("public"))
 app.use(cookieParser());
