@@ -1,4 +1,4 @@
-import { uploadOnCloudinary } from "../config/cloudinary";
+import cloudinary  from "../config/cloudinary.js";
 import fs from "fs/promises";
 
 export const uploadOnCloudinary = async (localFilePath) => {
@@ -9,7 +9,7 @@ export const uploadOnCloudinary = async (localFilePath) => {
   try {
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
-      folder: "your_app",
+      folder: "youtube",
     });
 
     await fs.unlink(localFilePath);
