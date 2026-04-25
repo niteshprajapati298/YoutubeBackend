@@ -23,15 +23,12 @@ const registerUser = asyncHandler(async (req, res) => {
     // console.log("files: ",files)
     const avatarLocalPath = files.avatar[0]?.path;
 
-    console.log("avatarImageLocalPath", avatarLocalPath)
 
     userData.avatar = avatarLocalPath;
 
     const coverImageLocalPath = files.coverImage?.[0]?.path;
     const error = validateRegister(userData);
-    console.log("coverImageLocalPath", coverImageLocalPath)
-
-    // step 2 -> validate the data 
+    // step 2 -> validate the data
     if (error.length > 0) throw new ApiError(400, error);
 
     // step 3 -> database check if user entry already exists in database
@@ -51,7 +48,7 @@ const registerUser = asyncHandler(async (req, res) => {
         avatar: avatar?.url,
         avatarPublicId: avatar?.public_id,
         coverImage: coverImage?.url || "",
-        coverImagePublicId:coverImage?.url?.public_id,
+        coverImagePublicId: coverImage?.public_id,
         password: userData.password,
     })
     const { accessToken, refreshToken } = await getAccessRefreshToken(createdUser);
@@ -65,6 +62,7 @@ const registerUser = asyncHandler(async (req, res) => {
             new ApiResponse(201, {
                 user,
                 accessToken,
+                refreshToken,
             }, "User registered successfully",)
         );
 })
@@ -72,7 +70,6 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
     // take the creds from the user ( req.body)
     const userData = req.body;
-    console.log(userData)
     // check if the creds are provided or not
     const errors = validateLogin(userData);
     if (errors.length > 0) throw new ApiError(400, errors);
@@ -88,7 +85,6 @@ const loginUser = asyncHandler(async (req, res) => {
     if (!isPasswordCorrect) throw new ApiError(401, "Password Incorrect ");
     const { accessToken, refreshToken } = await getAccessRefreshToken(user);
 
-    console.log(`Login successful: ${user.email}`);
 
     return res
         .status(200)
@@ -98,6 +94,7 @@ const loginUser = asyncHandler(async (req, res) => {
             new ApiResponse(200, {
                 user,
                 accessToken,
+                refreshToken,
             }, "User loggedIn successfully"))
 })
 
@@ -107,7 +104,6 @@ const logoutUser = asyncHandler(async (req, res) => {
         { $set: { refreshToken: null } },
         { new: true }
     );
-    console.log("USER: ", user)
     res
         .status(200)
         .clearCookie("accessToken", options)
@@ -128,9 +124,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     const { accessToken, refreshToken } = await getAccessRefreshToken(user);
     return res
         .status(200)
-        .cookie("refreshToken", refreshToken)
-        .cookie("accessToken", accessToken)
-        .json(new ApiResponse(200, {}, "AccessToken Refreshed"));
+        .cookie("refreshToken", refreshToken, options)
+        .cookie("accessToken", accessToken, options)
+        .json(new ApiResponse(200, { accessToken, refreshToken }, "AccessToken Refreshed"));
 
 })
 const updatePassword = asyncHandler(async (req, res) => {
@@ -199,8 +195,7 @@ const updateUserDetails = asyncHandler(async (req, res) => {
 const updateUserCoverImage = asyncHandler(async (req, res) => {
     const user = req.user;
     const coverImageLocalPath = req.files.coverImage[0]?.path;
-    console.log(req.files)
-    if (!coverImageLocalPath) throw new ApiError("Please Provide Cover Image");
+    if (!coverImageLocalPath) throw new ApiError(400, "Please Provide Cover Image");
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
     if (!coverImage) throw new ApiError(409, "Cannot find CoverImage")
     if (coverImage?.url) {

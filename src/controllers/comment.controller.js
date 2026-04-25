@@ -59,7 +59,12 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 as: "likes",
             },
         },
-        { $addFields: { likesCount: { $size: "$likes" } } },
+        { $addFields: {
+            likesCount: { $size: "$likes" },
+            isLiked: req.user
+                ? { $in: [req.user._id, "$likes.likedBy"] }
+                : false,
+        }},
         { $project: { likes: 0 } },
     ]);
 

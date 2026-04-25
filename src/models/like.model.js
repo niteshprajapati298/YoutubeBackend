@@ -26,10 +26,20 @@ const likeSchema = new Schema(
     { timestamps: true }
 );
 
-// Prevent duplicate likes
-likeSchema.index({ video: 1, likedBy: 1 }, { unique: true, sparse: true });
-likeSchema.index({ comment: 1, likedBy: 1 }, { unique: true, sparse: true });
-likeSchema.index({ communityPost: 1, likedBy: 1 }, { unique: true, sparse: true });
+// Prevent duplicate likes — partialFilterExpression ensures the index only applies
+// when the field is an actual ObjectId, so null values don't collide across documents
+likeSchema.index(
+    { video: 1, likedBy: 1 },
+    { unique: true, partialFilterExpression: { video: { $type: "objectId" } } }
+);
+likeSchema.index(
+    { comment: 1, likedBy: 1 },
+    { unique: true, partialFilterExpression: { comment: { $type: "objectId" } } }
+);
+likeSchema.index(
+    { communityPost: 1, likedBy: 1 },
+    { unique: true, partialFilterExpression: { communityPost: { $type: "objectId" } } }
+);
 
 const Like = mongoose.model("Like", likeSchema);
 export default Like;

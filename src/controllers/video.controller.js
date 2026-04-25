@@ -111,13 +111,49 @@ const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     if (!mongoose.isValidObjectId(videoId)) throw new ApiError(400, "Invalid video ID");
 
-    const video = await Video.findOneAndUpdate(
+    const updated = await Video.findOneAndUpdate(
         { _id: videoId, isPublished: true, isActive: true },
         { $inc: { views: 1 } },
         { new: true }
-    ).populate("owner", "fullName username avatar");
+    );
 
-    if (!video) throw new ApiError(404, "Video not found");
+    if (!updated) throw new ApiError(404, "Video not found");
+
+    const currentUserId = req.user?._id ? new mongoose.Types.ObjectId(req.user._id) : null;
+
+    const video = await Video.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "subscriptions",
+                            localField: "_id",
+                            foreignField: "channel",
+                            as: "subscribers",
+                        },
+                    },
+                    {
+                        $project: {
+                            fullName: 1,
+                            username: 1,
+                            avatar: 1,
+                            subscribersCount: { $size: "$subscribers" },
+                            isSubscribed: currentUserId
+                                ? { $in: [currentUserId, "$subscribers.subscriber"] }
+                                : false,
+                        },
+                    },
+                ],
+            },
+        },
+        { $addFields: { owner: { $first: "$owner" }, views: updated.views } },
+    ]);
 
     // Add to watch history if user is logged in
     if (req.user) {
@@ -126,7 +162,7 @@ const getVideoById = asyncHandler(async (req, res) => {
         });
     }
 
-    return res.status(200).json(new ApiResponse(200, video, "Video fetched"));
+    return res.status(200).json(new ApiResponse(200, video[0], "Video fetched"));
 });
 
 // Update video details

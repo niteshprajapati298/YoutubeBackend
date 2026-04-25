@@ -133,7 +133,13 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
     const playlists = await Playlist.find({ owner: userId, isActive: true })
         .sort({ createdAt: -1 })
-        .select("name description videos createdAt");
+        .select("name description videos createdAt")
+        .populate({
+            path: "videos",
+            match: { isPublished: true, isActive: true },
+            select: "title thumbnail duration views owner",
+            populate: { path: "owner", select: "fullName username avatar" },
+        });
 
     return res.status(200).json(new ApiResponse(200, playlists, "User playlists fetched"));
 });
