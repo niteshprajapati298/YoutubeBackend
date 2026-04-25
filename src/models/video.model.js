@@ -3,14 +3,22 @@ import mongoose, { Schema } from "mongoose";
 
 const videoSchema = new Schema({
     videoFile: {
-        type: String, // cloudinary url 
+        type: String, // cloudinary url
         required: true,
         unique: true,
     },
+    videoFilePublicId: {
+        type: String,
+        default: "",
+    },
     thumbnail: {
-        type: String,    // cloudinary url 
+        type: String,    // cloudinary url
         required: true,
         unique: true,
+    },
+    thumbnailPublicId: {
+        type: String,
+        default: "",
     },
     owner: {
         type: Schema.Types.ObjectId,

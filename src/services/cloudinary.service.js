@@ -1,7 +1,7 @@
-import cloudinary  from "../config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js";
 import fs from "fs/promises";
 
-export const uploadOnCloudinary = async (localFilePath) => {
+const uploadOnCloudinary = async (localFilePath) => {
   if (!localFilePath) {
     throw new Error("File path not provided");
   }
@@ -13,14 +13,27 @@ export const uploadOnCloudinary = async (localFilePath) => {
     });
 
     await fs.unlink(localFilePath);
-    console.log("File Uploaded Successfully")
+    console.log("File Uploaded Successfully");
     return response;
 
   } catch (error) {
     try {
-      await fs.uninks(localFilePath);
-    } catch (_) {}
+      await fs.unlink(localFilePath);
+    } catch (_) { }
 
     throw error;
   }
 };
+
+const deleteFromCloudinary = async (publicId, resourceType = "image") => {
+  if (!publicId) return null;
+  try {
+    const response = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    return response;
+  } catch (error) {
+    console.error("Cloudinary delete error:", error);
+    return null;
+  }
+};
+
+export { uploadOnCloudinary, deleteFromCloudinary };

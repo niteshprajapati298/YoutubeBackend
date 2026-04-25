@@ -2,8 +2,8 @@
 import bcrypt from "bcrypt";
 import mongoose, { Schema } from "mongoose";
 import jwt from 'jsonwebtoken'
+import { stringify } from "querystring";
 const userSchema = new Schema({
-
     isActive: {
         type: Boolean,
         default: true
@@ -31,8 +31,15 @@ const userSchema = new Schema({
         type: String, // cloudinary url 
         trim: true
     },
+    avatarPublicId : {
+        type:String,
+        required:true
+    },
     coverImage: {
         type: String,
+    },
+    coverImagePublicId :{
+        type:String
     },
     password: {
         type: String,
@@ -85,5 +92,6 @@ userSchema.methods.generateRefreshToken = async function () {
         }
     )
 }
+
 const User = mongoose.model('User', userSchema);
 export default User;
