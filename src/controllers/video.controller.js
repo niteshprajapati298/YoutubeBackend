@@ -4,6 +4,7 @@ import asyncHandler from "../../utils/asyncHandler.js";
 import Video from "../models/video.model.js";
 import User from "../models/user.model.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../services/cloudinary.service.js";
+import { registerView } from "../services/viewTracking.service.js";
 import mongoose from "mongoose";
 
 // Upload a new video
@@ -106,18 +107,24 @@ const getAllVideos = asyncHandler(async (req, res) => {
     );
 });
 
-// Get video by ID and increment views
+// Get video by ID — conditionally increments views with a 30-min cooldown
+// per user (or anon fingerprint) so reloading/replaying doesn't inflate.
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     if (!mongoose.isValidObjectId(videoId)) throw new ApiError(400, "Invalid video ID");
 
-    const updated = await Video.findOneAndUpdate(
-        { _id: videoId, isPublished: true, isActive: true },
-        { $inc: { views: 1 } },
-        { new: true }
-    );
+    // 404 first so we never write a View doc for a missing/unpublished video
+    const exists = await Video.exists({ _id: videoId, isPublished: true, isActive: true });
+    if (!exists) throw new ApiError(404, "Video not found");
 
-    if (!updated) throw new ApiError(404, "Video not found");
+    // Conditionally bumps Video.views; a no-op if this user/fingerprint
+    // viewed the same video within COOLDOWN_MS.
+    const { views } = await registerView({
+        videoId,
+        userId: req.user?._id,
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+    });
 
     const currentUserId = req.user?._id ? new mongoose.Types.ObjectId(req.user._id) : null;
 
@@ -152,7 +159,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                 ],
             },
         },
-        { $addFields: { owner: { $first: "$owner" }, views: updated.views } },
+        { $addFields: { owner: { $first: "$owner" }, views } },
     ]);
 
     // Add to watch history if user is logged in

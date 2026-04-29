@@ -11,6 +11,10 @@ const isProd = process.env.NODE_ENV === "production";
 
 export const app = express();
 
+// Trust the first proxy hop in production so req.ip resolves to the real
+// client IP (used by view-counting fingerprint dedup) rather than the proxy's.
+if (isProd) app.set("trust proxy", 1);
+
 // Security headers
 app.use(helmet());
 

@@ -77,12 +77,12 @@ const loginUser = asyncHandler(async (req, res) => {
     // check if the user present in the db
     const user = await User.findOne({ email: userData.email });
 
-    if (!user) throw new ApiError(401, "Invalid Credentials");
+    // Same generic message for "no such email" and "wrong password" so we
+    // don't leak which emails are registered.
+    if (!user) throw new ApiError(401, "Incorrect email or password");
 
     const isPasswordCorrect = await user.isPasswordVerified(userData.password);
-
-    //check if the creds are right or not
-    if (!isPasswordCorrect) throw new ApiError(401, "Password Incorrect ");
+    if (!isPasswordCorrect) throw new ApiError(401, "Incorrect email or password");
     const { accessToken, refreshToken } = await getAccessRefreshToken(user);
 
 
