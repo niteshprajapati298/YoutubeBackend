@@ -56,6 +56,16 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
+// Health check and root endpoint
+app.get("/", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "✅ Server is running",
+        timestamp: new Date().toISOString(),
+        version: "1.0.0"
+    });
+});
+
 app.use("/api", routes);
 app.use(express.static("public"));
 
