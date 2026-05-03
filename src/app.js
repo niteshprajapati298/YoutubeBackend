@@ -73,10 +73,14 @@ app.use(express.static("public"));
 // Convert multer/upload errors into structured ApiError-style responses
 app.use(uploadErrorHandler);
 
-// Global error handler — hide stack traces in production
+// Global error handler — hide stack traces in client response, but always log them
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    if (statusCode >= 500) {
+        console.error(`[ERROR] ${req.method} ${req.originalUrl} -> ${statusCode}: ${message}`);
+        if (err.stack) console.error(err.stack);
+    }
     return res.status(statusCode).json({
         success: false,
         statusCode,
