@@ -6,6 +6,7 @@ import compression from "compression";
 import morgan from "morgan";
 import { rateLimit } from "express-rate-limit";
 import routes from "./routes/index.js";
+import { uploadErrorHandler } from "./middlewares/uploadError.middleware.js";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -68,6 +69,9 @@ app.get("/", (req, res) => {
 
 app.use("/api", routes);
 app.use(express.static("public"));
+
+// Convert multer/upload errors into structured ApiError-style responses
+app.use(uploadErrorHandler);
 
 // Global error handler — hide stack traces in production
 app.use((err, req, res, next) => {
