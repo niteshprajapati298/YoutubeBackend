@@ -34,9 +34,24 @@ const uploadOnCloudinary = async (localFilePath) => {
             : await cloudinary.uploader.upload(localFilePath, baseOptions);
 
         await safeUnlink(localFilePath);
+
+        if (!response?.url && !response?.secure_url) {
+            console.error("[Cloudinary] response missing url:", JSON.stringify(response));
+            throw new ApiError(502, response?.error?.message || "Cloudinary returned no URL for the upload.");
+        }
         return response;
     } catch (error) {
         await safeUnlink(localFilePath);
+
+        console.error("[Cloudinary] upload failed:", {
+            file: localFilePath,
+            http_code: error?.http_code,
+            name: error?.name,
+            message: error?.message,
+            body: error?.error || error?.response?.body,
+        });
+
+        if (error instanceof ApiError) throw error;
 
         const message = error?.message || "";
         if (/timeout/i.test(message) || error?.http_code === 499) {
@@ -46,7 +61,7 @@ const uploadOnCloudinary = async (localFilePath) => {
             throw new ApiError(413, "File is too large for the storage provider.");
         }
         if (error?.http_code === 401) {
-            throw new ApiError(500, "Storage provider authentication failed.");
+            throw new ApiError(500, "Storage provider authentication failed. Check CLOUDINARY_* env vars.");
         }
 
         throw new ApiError(502, message || "Failed to upload file to storage.");
