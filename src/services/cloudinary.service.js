@@ -2,10 +2,7 @@ import cloudinary from "../config/cloudinary.js";
 import fs from "fs/promises";
 import { ApiError } from "../../utils/ApiError.js";
 
-const VIDEO_CHUNK_SIZE = 6 * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000;
-
-const isVideo = (filePath) => /\.(mp4|mov|mkv|webm|avi)$/i.test(filePath);
 
 const safeUnlink = async (filePath) => {
     try {
@@ -25,20 +22,23 @@ const uploadOnCloudinary = async (localFilePath) => {
             timeout: UPLOAD_TIMEOUT_MS,
         };
 
-        const response = isVideo(localFilePath)
-            ? await cloudinary.uploader.upload_large(localFilePath, {
-                  ...baseOptions,
-                  resource_type: "video",
-                  chunk_size: VIDEO_CHUNK_SIZE,
-              })
-            : await cloudinary.uploader.upload(localFilePath, baseOptions);
+        // Use standard upload() for both videos and images
+        // Cloudinary handles large files automatically
+        const response = await cloudinary.uploader.upload(localFilePath, baseOptions);
 
         await safeUnlink(localFilePath);
 
-        if (!response?.url && !response?.secure_url) {
-            console.error("[Cloudinary] response missing url:", JSON.stringify(response));
-            throw new ApiError(502, response?.error?.message || "Cloudinary returned no URL for the upload.");
+        // Validate response has URL
+        const url = response?.url || response?.secure_url;
+        if (!url) {
+            console.error("[Cloudinary] Invalid response:", {
+                hasUrl: !!response?.url,
+                hasSecureUrl: !!response?.secure_url,
+                keys: Object.keys(response || {}),
+            });
+            throw new ApiError(502, "Cloudinary upload returned no URL");
         }
+
         return response;
     } catch (error) {
         await safeUnlink(localFilePath);
@@ -48,7 +48,6 @@ const uploadOnCloudinary = async (localFilePath) => {
             http_code: error?.http_code,
             name: error?.name,
             message: error?.message,
-            body: error?.error || error?.response?.body,
         });
 
         if (error instanceof ApiError) throw error;
